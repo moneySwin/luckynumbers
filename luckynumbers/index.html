@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>LuckyNumbers 🎰</title>
+<style>
+  body {
+    background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    color: #e0e0e0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    margin: 0;
+    position: relative;
+  }
+  #signature {
+    position: fixed;
+    top: 12px;
+    left: 12px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #50fa7bcc;
+    text-shadow: 0 0 8px #50fa7b99;
+    user-select: none;
+    pointer-events: none;
+  }
+  #app {
+    background: rgba(255,255,255,0.1);
+    padding: 30px;
+    border-radius: 20px;
+    width: 320px;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.5);
+    text-align: center;
+  }
+  h1 {
+    margin-bottom: 25px;
+    color: #50fa7b;
+    text-shadow: 0 0 8px #50fa7b;
+  }
+  select, input {
+    width: 100%;
+    padding: 12px;
+    margin-bottom: 18px;
+    border-radius: 12px;
+    border: none;
+    background: rgba(255 255 255 / 0.15);
+    color: #d9f6cb;
+    font-size: 1rem;
+  }
+  #prize {
+    font-weight: 700;
+    margin-bottom: 10px;
+    color: #50fa7b;
+  }
+  #result {
+    font-weight: 700;
+    min-height: 40px;
+    margin-bottom: 8px;
+    color: #e0e0e0;
+    transition: color 0.4s ease;
+  }
+  /* New position for chances (bottom under result) */
+  #bottomChances {
+    font-weight: 700;
+    color: #ff5555;
+    min-height: 24px;
+    margin-bottom: 12px;
+  }
+  button {
+    width: 100%;
+    padding: 14px 0;
+    border: none;
+    border-radius: 14px;
+    background: #50fa7b;
+    font-weight: 900;
+    color: #0f2027;
+    font-size: 1.15rem;
+    cursor: pointer;
+    box-shadow: 0 0 20px #50fa7b;
+  }
+  /* Popup overlay */
+  #popupOverlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(15,32,39,0.85);
+    backdrop-filter: blur(6px);
+    justify-content: center;
+    align-items: center;
+    z-index: 10000;
+  }
+  #popup {
+    background: rgba(255 255 255 / 0.15);
+    backdrop-filter: blur(14px);
+    border-radius: 20px;
+    width: 300px;
+    padding: 30px 20px;
+    color: #f8f8f8;
+    font-weight: 800;
+    font-size: 1.25rem;
+    text-align: center;
+    user-select: none;
+    transition: width 0.3s ease;
+  }
+  #popup.smaller {
+    width: 240px;
+    padding: 20px 15px;
+    font-size: 1.1rem;
+  }
+  #popup .lucky-number {
+    font-size: 2rem;
+    font-weight: 900;
+    color: #50fa7b;
+    text-shadow: 0 0 6px #50fa7b, 0 0 12px #50fa7b, 0 0 18px #50fa7b;
+    animation: pulse 1.8s infinite ease-in-out;
+  }
+  #popup button {
+    padding: 12px 28px;
+    border-radius: 14px;
+    border: none;
+    background: #50fa7b;
+    color: #0f2027;
+    font-weight: 900;
+    font-size: 1.1rem;
+    cursor: pointer;
+    box-shadow: 0 0 15px #50fa7b;
+  }
+  .spinner {
+    width: 24px;
+    height: 24px;
+    border: 3px solid #50fa7b;
+    border-top-color: transparent;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    display: inline-block;
+    vertical-align: middle;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  @keyframes pulse {
+    0%,100% { text-shadow: 0 0 6px #50fa7b, 0 0 12px #50fa7b; }
+    50% { text-shadow: 0 0 18px #50fa7b, 0 0 24px #50fa7b; }
+  }
+</style>
+</head>
+<body>
+  <div id="signature">Made by ChatGPT Logic</div>
+  <div id="app">
+    <h1>LuckyNumbers 🎰</h1>
+    <label for="mode">Choose mode</label>
+    <select id="mode">
+      <option value="10" data-prize="10" data-chances="1">Mode 1</option>
+      <option value="30" data-prize="50" data-chances="2">Mode 2</option>
+      <option value="100" data-prize="1000" data-chances="3">Mode 3</option>
+    </select>
+    <div id="prize">You receive $10</div>
+    <input type="number" id="guess" placeholder="1 - 10" />
+    <button id="guessBtn">Guess</button>
+    <div id="result"></div>
+    <div id="bottomChances"></div>
+  </div>
+
+  <!-- Popup -->
+  <div id="popupOverlay">
+    <div id="popup">
+      <p id="popupMessage"></p>
+      <button id="popupBtn" style="display:none;">Reset</button>
+    </div>
+  </div>
+
+  <!-- Audio Effects -->
+  <audio id="winSound" src="https://assets.mixkit.co/sfx/preview/mixkit-achievement-bell-600.mp3" preload="auto"></audio>
+  <audio id="loseSound" src="https://assets.mixkit.co/sfx/preview/mixkit-failure-arcade-alert-notification-240.mp3" preload="auto"></audio>
+  <audio id="clickSound" src="https://assets.mixkit.co/sfx/preview/mixkit-modern-click-box-check-1120.mp3" preload="auto"></audio>
+
+<script>
+(() => {
+  const modeSelect = document.getElementById('mode');
+  const prizeDisplay = document.getElementById('prize');
+  const guessInput = document.getElementById('guess');
+  const resultDisplay = document.getElementById('result');
+  const bottomChances = document.getElementById('bottomChances');
+  const guessBtn = document.getElementById('guessBtn');
+
+  const popupOverlay = document.getElementById('popupOverlay');
+  const popupMessage = document.getElementById('popupMessage');
+  const popupBtn = document.getElementById('popupBtn');
+  const popupBox = document.getElementById('popup');
+
+  const winSound = document.getElementById('winSound');
+  const loseSound = document.getElementById('loseSound');
+  const clickSound = document.getElementById('clickSound');
+
+  let maxNumber = 10;
+  let prize = 10;
+  let chances = 1;
+  let luckyNumber = 0;
+  let remainingChances = 1;
+
+  function fadeMessage(el, text, color) {
+    el.style.opacity = 0;
+    setTimeout(() => {
+      el.textContent = text;
+      el.style.color = color;
+      el.style.opacity = 1;
+    }, 200);
+  }
+
+  function startGame() {
+    maxNumber = parseInt(modeSelect.value);
+    prize = parseInt(modeSelect.selectedOptions[0].dataset.prize);
+    chances = parseInt(modeSelect.selectedOptions[0].dataset.chances);
+
+    luckyNumber = Math.floor(Math.random() * maxNumber) + 1;
+    remainingChances = chances;
+
+    prizeDisplay.textContent = `You receive $${prize}`;
+    resultDisplay.textContent = '';
+    bottomChances.textContent = `${remainingChances} chance${remainingChances>1?'s':''} left`;
+    guessInput.value = '';
+    guessInput.disabled = false;
+    guessBtn.disabled = false;
+    guessInput.placeholder = `1 - ${maxNumber}`;
+    popupBox.classList.remove('smaller');
+  }
+
+  function showPopup(html, showButton=false, callback=null, smaller=false, buttonText="Reset") {
+    popupMessage.innerHTML = html;
+    popupOverlay.style.display = 'flex';
+    popupBtn.style.display = showButton ? 'inline-block' : 'none';
+    popupBtn.textContent = buttonText;
+    if (smaller) popupBox.classList.add('smaller'); else popupBox.classList.remove('smaller');
+    popupBtn.onclick = () => {
+      popupOverlay.style.display = 'none';
+      if (callback) callback();
+    };
+  }
+
+  function handleGuess() {
+    clickSound.play();
+
+    const guess = parseInt(guessInput.value);
+    if (isNaN(guess) || guess < 1 || guess > maxNumber) {
+      fadeMessage(resultDisplay, `Enter number between 1 and ${maxNumber}`, '#ff6b6b');
+      return;
+    }
+
+    guessInput.disabled = true;
+    guessBtn.disabled = true;
+
+    if (guess === luckyNumber) {
+      winSound.play();
+      fadeMessage(resultDisplay, `🎉 THE CORRECT NUMBER IS ${luckyNumber}`, '#50fa7b');
+
+      showPopup(`🎉 Congratulations! The lucky number is <span class="lucky-number">${luckyNumber}</span> 🤩`);
+      setTimeout(() => {
+        showPopup(`Receiving $${prize}... <span class="spinner"></span>`);
+        setTimeout(() => {
+          showPopup(`💰 Putted $${prize} in your bank account!`, true, () => {
+            showPopup(`😃 Try Again`, true, startGame);
+          }, true, "OK");
+        }, 3500);
+      }, 1500);
+
+      return;
+    }
+
+    remainingChances--;
+
+    if (remainingChances > 0) {
+      fadeMessage(resultDisplay, `😞 Incorrect! Try again.`, '#ffb86c');
+      bottomChances.textContent = `${remainingChances} chance${remainingChances>1?'s':''} left`;
+      guessInput.disabled = false;
+      guessBtn.disabled = false;
+    } else {
+      loseSound.play();
+      fadeMessage(resultDisplay, `😞 THE CORRECT NUMBER WAS ${luckyNumber}`, '#ff5555');
+      bottomChances.textContent = ''; // hide chances after lose
+
+      showPopup(`😞 The lucky number was <span class="lucky-number">${luckyNumber}</span>`, true, () => {
+        showPopup(`😞 Try Again 😞`, true, startGame);
+      }, true, "OK");
+    }
+
+    guessInput.value = '';
+  }
+
+  modeSelect.addEventListener('change', startGame);
+  guessBtn.addEventListener('click', handleGuess);
+
+  startGame();
+})();
+</script>
+</body>
+</html>
